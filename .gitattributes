@@ -1,0 +1,20 @@
+# Normaliza finais de linha. Sem isso, o autocrlf do Git no Windows grava CRLF
+# nos scripts, e `bash script.sh` falha dentro de um container Linux com
+# "bad interpreter: /usr/bin/env bash^M".
+* text=auto eol=lf
+
+# Arquivos que precisam obrigatoriamente de LF.
+*.sh      text eol=lf
+*.py      text eol=lf
+*.tf      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+Dockerfile*   text eol=lf
+Makefile      text eol=lf
+
+# Binários: nunca converter.
+*.png     binary
+*.pdf     binary
+*.drawio  binary
+*.woff2   binary
+*.ico     binary
