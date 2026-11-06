@@ -1,12 +1,16 @@
 import type {
+  BackofficeOrders,
   Category,
   ChatAction,
   ChatResponse,
   ConversationHistory,
+  ConversationSummary,
   Order,
   Product,
   ProductList,
+  StockReport,
   Suggestion,
+  User,
 } from '@/types/api'
 
 // Caminhos relativos: em produção o ALB decide o serviço pelo prefixo
@@ -41,6 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(response.status, detail)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -66,6 +71,30 @@ export const catalog = {
 export const orders = {
   get: (id: string, conversationId?: string | null) =>
     request<Order>(`/api/orders/${encodeURIComponent(id)}${query({ conversation_id: conversationId })}`),
+}
+
+// --------------------------------------------------------------- conta
+
+// A sessão vive num cookie HttpOnly: o JavaScript nunca toca no token.
+export const auth = {
+  me: () => request<User>('/api/auth/me'),
+  login: (payload: { email: string; password: string }) =>
+    request<User>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  register: (payload: { name: string; email: string; password: string }) =>
+    request<User>('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+  logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+}
+
+export const account = {
+  orders: () => request<{ orders: Order[]; total: number }>('/api/me/orders'),
+  conversations: () =>
+    request<{ conversations: ConversationSummary[] }>('/api/conversations').then((r) => r.conversations),
+}
+
+export const backoffice = {
+  stock: () => request<StockReport>('/api/backoffice/stock'),
+  orders: (params: { status?: string; limit?: number; offset?: number }) =>
+    request<BackofficeOrders>(`/api/backoffice/orders${query(params)}`),
 }
 
 // ---------------------------------------------------------------- chat

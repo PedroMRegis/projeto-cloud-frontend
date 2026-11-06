@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 
 import { ApiError, chat } from '@/api/client'
+import { useAuth } from '@/features/auth/AuthContext'
 import { newRequestId } from '@/lib/format'
 import type { ChatAction, Stage, Suggestion, TurnUI } from '@/types/api'
 
@@ -43,6 +44,7 @@ interface ChatState {
   send: (message: string, action?: ChatAction) => Promise<void>
   retry: (messageId: string) => Promise<void>
   newConversation: () => void
+  openConversation: (id: string) => Promise<void>
 }
 
 const ChatContext = createContext<ChatState | null>(null)
@@ -79,6 +81,7 @@ const GREETING: ChatMessage = {
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth()
   const [open, setOpen] = useState(params.has('chat') || params.has('conversa'))
   const [conversationId, setConversationId] = useState<string | null>(readStoredId)
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING])
@@ -89,24 +92,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [restoring, setRestoring] = useState(false)
   const conversationRef = useRef(conversationId)
   conversationRef.current = conversationId
+  // Trocar de conversa invalida respostas que ainda estavam a caminho.
+  const loadRef = useRef(0)
 
-  // Restaura a conversa salva (ou busca as sugestões iniciais).
-  useEffect(() => {
-    let cancelled = false
-    const id = conversationRef.current
-    async function restore() {
-      if (!id) {
-        const fresh = await chat.start('nova').catch(() => null)
-        if (!cancelled && fresh) {
-          setSuggestions(fresh.suggestions)
-          setInputHint(fresh.input_hint)
-        }
-        return
-      }
+  const loadStart = useCallback(async () => {
+    const load = ++loadRef.current
+    const fresh = await chat.start('nova').catch(() => null)
+    if (load === loadRef.current && fresh) {
+      setSuggestions(fresh.suggestions)
+      setInputHint(fresh.input_hint)
+    }
+  }, [])
+
+  const loadHistory = useCallback(
+    async (id: string) => {
+      const load = ++loadRef.current
       setRestoring(true)
       try {
         const history = await chat.history(id)
-        if (cancelled) return
+        if (load !== loadRef.current) return
         setMessages([
           GREETING,
           ...history.messages.map((m, i) => ({
@@ -120,22 +124,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setInputHint(history.input_hint)
         setStage(history.stage)
       } catch (error) {
-        // Conversa expirou (TTL de 7 dias) ou nunca existiu: recomeça.
-        if (error instanceof ApiError && error.status === 404) {
+        // A conversa é de outra conta, a sessão expirou ou ela nunca existiu.
+        if (load === loadRef.current && error instanceof ApiError && error.status === 404) {
           storeId(null)
+          conversationRef.current = null
           setConversationId(null)
-          const fresh = await chat.start('nova').catch(() => null)
-          if (!cancelled && fresh) setSuggestions(fresh.suggestions)
+          setMessages([GREETING])
+          await loadStart()
         }
       } finally {
-        if (!cancelled) setRestoring(false)
+        if (load === loadRef.current) setRestoring(false)
       }
-    }
-    restore()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    },
+    [loadStart],
+  )
+
+  // Restaura a conversa salva (ou busca as sugestões iniciais).
+  useEffect(() => {
+    const id = conversationRef.current
+    if (id) loadHistory(id)
+    else loadStart()
+  }, [loadHistory, loadStart])
 
   const deliver = useCallback(
     async (userMessageId: string, payload: { message: string; request_id: string; action?: ChatAction }) => {
@@ -228,15 +237,32 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     conversationRef.current = null
     setConversationId(null)
     setMessages([GREETING])
+    setSuggestions([])
     setStage('idle')
-    chat
-      .start('nova')
-      .then((fresh) => {
-        setSuggestions(fresh.suggestions)
-        setInputHint(fresh.input_hint)
-      })
-      .catch(() => setSuggestions([]))
-  }, [])
+    loadStart()
+  }, [loadStart])
+
+  const openConversation = useCallback(
+    async (id: string) => {
+      storeId(id)
+      conversationRef.current = id
+      setConversationId(id)
+      setMessages([GREETING])
+      setSuggestions([])
+      setOpen(true)
+      await loadHistory(id)
+    },
+    [loadHistory],
+  )
+
+  // Ao sair da conta, a conversa dela não pode continuar na tela.
+  const previousUser = useRef<string | null>(null)
+  useEffect(() => {
+    if (authLoading) return
+    const current = user?.user_id ?? null
+    if (previousUser.current && previousUser.current !== current) newConversation()
+    previousUser.current = current
+  }, [authLoading, user, newConversation])
 
   const value = useMemo<ChatState>(
     () => ({
@@ -253,8 +279,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       retry,
       newConversation,
+      openConversation,
     }),
-    [open, messages, suggestions, inputHint, stage, sending, restoring, conversationId, send, retry, newConversation],
+    [
+      open,
+      messages,
+      suggestions,
+      inputHint,
+      stage,
+      sending,
+      restoring,
+      conversationId,
+      send,
+      retry,
+      newConversation,
+      openConversation,
+    ],
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

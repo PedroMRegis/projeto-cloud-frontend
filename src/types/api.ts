@@ -142,6 +142,52 @@ export interface ChatResponse extends TurnUI {
   replayed: boolean
 }
 
+export type Role = 'customer' | 'admin'
+
+export interface User {
+  user_id: string
+  email: string
+  name: string
+  role: Role
+}
+
+export interface ConversationSummary {
+  conversation_id: string
+  title: string
+  last_message: string
+  stage: Stage
+  created_at: string
+  updated_at: string
+}
+
+export interface StockItem {
+  product_id: string
+  title: string
+  author: string
+  category: string
+  price: string
+  stock: number
+  ledger_stock: number
+  sold: number
+  ledger_ok: boolean
+}
+
+export interface StockReport {
+  items: StockItem[]
+  summary: { titles: number; units: number; out_of_stock: number; sold: number; ledger_mismatches: number }
+}
+
+export interface BackofficeOrder extends Omit<Order, 'reason'> {
+  account_email: string | null
+  reason: string | null
+}
+
+export interface BackofficeOrders {
+  orders: BackofficeOrder[]
+  by_status: Partial<Record<OrderStatus, number>>
+  total: number
+}
+
 export interface ConversationHistory {
   conversation_id: string
   messages: { role: 'user' | 'assistant'; content: string; at: string; ui?: TurnUI }[]
