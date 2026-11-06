@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { ArrowClockwise, ArrowUp, NotePencil, Warning, X } from '@phosphor-icons/react'
+import { Link } from 'react-router-dom'
+import { ArrowClockwise, ArrowUp, ClockCounterClockwise, NotePencil, Warning, X } from '@phosphor-icons/react'
+
+import { useAuth } from '@/features/auth/AuthContext'
 
 import { useChat } from './ChatContext'
 import type { ChatMessage } from './ChatContext'
@@ -14,6 +17,7 @@ import { OrderTicket, ProductStrip, QuoteReceipt } from './ChatCards'
 export function ChatPanel() {
   const { open, closeChat, messages, suggestions, inputHint, send, sending, restoring, newConversation } =
     useChat()
+  const { user } = useAuth()
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -68,6 +72,16 @@ export function ChatPanel() {
             <p className="font-display text-lg font-semibold leading-none">O livreiro</p>
             <p className="mt-1 text-xs text-ink-500">Busca, cotação e pedido numa conversa</p>
           </div>
+          {user && (
+            <Link
+              to="/minha-conta/conversas"
+              className="rounded-full p-2 text-ink-500 transition-colors hover:bg-paper-100 hover:text-ink-900"
+              title="Minhas conversas"
+              aria-label="Minhas conversas"
+            >
+              <ClockCounterClockwise size={19} />
+            </Link>
+          )}
           <button
             type="button"
             onClick={newConversation}

@@ -3,11 +3,13 @@ import type { FormEvent } from 'react'
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChatCircleText, MagnifyingGlass } from '@phosphor-icons/react'
 
+import { useAuth } from '@/features/auth/AuthContext'
 import { useChat } from '@/features/chat/ChatContext'
 import { CATEGORY_LABELS } from '@/lib/format'
 
 export function Header() {
-  const { openChat } = useChat()
+  const { open, openChat } = useChat()
+  const { user, loading, logout } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [term, setTerm] = useState(params.get('q') ?? '')
@@ -17,8 +19,17 @@ export function Header() {
     navigate(term.trim() ? `/catalogo?q=${encodeURIComponent(term.trim())}` : '/catalogo')
   }
 
+  const accountLink = 'border-b-2 border-transparent pb-1 text-ink-500 transition-colors hover:text-ink-900'
+
+  async function signOut() {
+    await logout()
+    navigate('/')
+  }
+
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-paper-50/92 backdrop-blur">
+    <header
+      className={`sticky top-0 z-30 border-b border-line bg-paper-50/92 backdrop-blur transition-[padding] duration-300 ${open ? 'lg:pr-[420px]' : ''}`}
+    >
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3.5 sm:gap-8 sm:px-6">
         <Link to="/" className="flex items-baseline gap-2" aria-label="Cirro Livros — início">
           <span className="font-display text-[1.75rem] font-semibold leading-none tracking-tight">Cirro</span>
@@ -72,6 +83,39 @@ export function Header() {
               </Link>
             </li>
           ))}
+          {!loading && !user && (
+            <li className="ml-auto">
+              <Link to="/entrar" className={accountLink}>
+                Entrar
+              </Link>
+            </li>
+          )}
+          {user && (
+            <>
+              <li className="ml-auto">
+                <Link to="/minha-conta/conversas" className={accountLink}>
+                  Conversas
+                </Link>
+              </li>
+              <li>
+                <Link to="/minha-conta/pedidos" className={accountLink}>
+                  Pedidos
+                </Link>
+              </li>
+              {user.role === 'admin' && (
+                <li>
+                  <Link to="/gestao" className={accountLink}>
+                    Gestão
+                  </Link>
+                </li>
+              )}
+              <li>
+                <button type="button" onClick={signOut} className={accountLink}>
+                  Sair
+                </button>
+              </li>
+            </>
+          )}
         </ul>
       </nav>
     </header>
