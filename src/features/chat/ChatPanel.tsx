@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ArrowClockwise, ArrowUp, ClockCounterClockwise, NotePencil, Warning, X } from '@phosphor-icons/react'
 
 import { useAuth } from '@/features/auth/AuthContext'
@@ -192,6 +192,26 @@ function Message({ message, latest }: { message: ChatMessage; latest: boolean })
       {ui && ui.products.length > 0 && <ProductStrip products={ui.products} interactive={latest} />}
       {ui?.quote && !ui.order && <QuoteReceipt quote={ui.quote} />}
       {ui?.order && <OrderTicket order={ui.order} live={latest} />}
+      {ui?.login_required && latest && <LoginPrompt />}
+    </div>
+  )
+}
+
+/** Depois do login, o cliente volta para esta página com a conversa e a cotação. */
+function LoginPrompt() {
+  const { user } = useAuth()
+  const { pathname } = useLocation()
+  if (user) return null
+  const next = `?proximo=${encodeURIComponent(pathname)}`
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Link to={`/entrar${next}`} className="btn-primary !px-4 !py-2">
+        Entrar
+      </Link>
+      <Link to={`/cadastro${next}`} className="btn-ghost !px-4 !py-2">
+        Criar conta
+      </Link>
     </div>
   )
 }

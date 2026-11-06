@@ -185,6 +185,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               suggestions: response.suggestions,
               input_hint: response.input_hint,
               stage: response.stage,
+              login_required: response.login_required,
             },
           },
         ])

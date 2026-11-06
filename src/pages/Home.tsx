@@ -183,7 +183,7 @@ function HowItWorks() {
   const steps = [
     ['Converse', 'Peça por título, autor ou só pelo assunto. A busca entende o que você quis dizer.'],
     ['Cote', 'O livreiro monta a cotação com o preço do catálogo e aplica o desconto que a casa permite.'],
-    ['Confirme', 'Com o seu nome, o pedido é registrado e o estoque, reservado em poucos segundos.'],
+    ['Confirme', 'Com a sua conta, o pedido é registrado e o estoque, reservado em poucos segundos.'],
   ]
   return (
     <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6">

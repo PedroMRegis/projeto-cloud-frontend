@@ -96,7 +96,6 @@ export type ChatActionType =
   | 'change_quantity'
   | 'request_discount'
   | 'confirm'
-  | 'set_name'
   | 'details'
   | 'order_status'
   | 'browse_category'
@@ -113,7 +112,6 @@ export interface ChatAction {
   discount_pct?: number
   category?: string
   query?: string
-  name?: string
 }
 
 export interface Suggestion {
@@ -122,7 +120,7 @@ export interface Suggestion {
   action?: ChatAction
 }
 
-export type Stage = 'idle' | 'browsing' | 'product' | 'quoted' | 'awaiting_name' | 'ordered'
+export type Stage = 'idle' | 'browsing' | 'product' | 'quoted' | 'ordered'
 
 export interface TurnUI {
   products: ProductCard[]
@@ -131,6 +129,7 @@ export interface TurnUI {
   suggestions: Suggestion[]
   input_hint: string
   stage: Stage
+  login_required?: boolean
 }
 
 export interface ChatResponse extends TurnUI {
